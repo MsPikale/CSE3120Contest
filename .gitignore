@@ -1,0 +1,11 @@
+Debug/
+Release/
+.vs/
+*.sdf
+*.suo
+*.user
+*.lst
+*.obj
+*.exe
+*.pdb
+*.ilk
