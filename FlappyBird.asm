@@ -27,11 +27,14 @@ KEY_SPACE   = 32
 birdY       SDWORD ?        ; bird height (1/4 rows, 0 = top)
 birdVel     SDWORD ?        ; bird speed (1/4 rows per frame, negative = up)
 quitFlag    DWORD 0
+alive       DWORD ?         ; 1 while the bird is still flying
+score       DWORD ?
 pipeX       SDWORD NUM_PIPES DUP(?)     ; left column of each pipe
 gapTop      SDWORD NUM_PIPES DUP(?)     ; first open row of each pipe
 
 rowBuf      BYTE '|', FIELD_W DUP(' '), '|', 0
 borderLine  BYTE '+', FIELD_W DUP('-'), '+', 0
+scoreMsg    BYTE "Score: ", 0
 helpMsg     BYTE "SPACE / W = flap     ESC = quit", 0
 
 .code
@@ -46,7 +49,10 @@ GameLoop:
     je   Quit
     call UpdateBird
     call UpdatePipes
+    call CheckCollision
     call DrawFrame
+    cmp  alive, 0
+    je   Quit
     mov  eax, FRAME_MS
     call Delay
     jmp  GameLoop
@@ -64,6 +70,8 @@ ResetGame PROC USES eax ebx esi
 ;------------------------------------------------------------------
     mov  birdY, START_Y
     mov  birdVel, 0
+    mov  score, 0
+    mov  alive, 1
 
     mov  esi, 0
     mov  ebx, FIELD_W       ; first pipe starts at the right edge
@@ -90,13 +98,18 @@ RandomGap ENDP
 
 ;------------------------------------------------------------------
 UpdatePipes PROC USES eax esi
-; Moves every pipe one column left. A pipe that leaves the screen
-; jumps back behind the last pipe with a new random gap.
+; Moves every pipe one column left and scores each pipe the bird
+; gets past. A pipe that leaves the screen jumps back behind the
+; last pipe with a new random gap.
 ; Receives: nothing   Returns: nothing
 ;------------------------------------------------------------------
     mov  esi, 0
 PipeLoop:
     dec  pipeX[esi]
+    cmp  pipeX[esi], BIRD_X - PIPE_W    ; right edge just passed the bird?
+    jne  CheckEdge
+    inc  score
+CheckEdge:
     cmp  pipeX[esi], -PIPE_W        ; completely off the left edge?
     jg   NextPipe
     add  pipeX[esi], NUM_PIPES * PIPE_SPACING
@@ -151,6 +164,40 @@ Done:
 UpdateBird ENDP
 
 ;------------------------------------------------------------------
+CheckCollision PROC USES eax ebx esi
+; Sets alive = 0 if the bird hit the ground or a pipe.
+; Receives: nothing   Returns: nothing
+;------------------------------------------------------------------
+    call GetBirdRow
+    cmp  eax, FIELD_H
+    jge  Dead               ; hit the ground
+    mov  ebx, eax           ; ebx = bird row
+
+    mov  esi, 0
+PipeLoop:
+    mov  eax, pipeX[esi]
+    cmp  eax, BIRD_X
+    jg   NextPipe           ; pipe is still to the right of the bird
+    add  eax, PIPE_W
+    cmp  eax, BIRD_X
+    jle  NextPipe           ; pipe is already to the left of the bird
+    mov  eax, gapTop[esi]
+    cmp  ebx, eax
+    jl   Dead               ; above the gap
+    add  eax, GAP_H
+    cmp  ebx, eax
+    jge  Dead               ; below the gap
+NextPipe:
+    add  esi, TYPE pipeX
+    cmp  esi, SIZEOF pipeX
+    jl   PipeLoop
+    ret
+Dead:
+    mov  alive, 0
+    ret
+CheckCollision ENDP
+
+;------------------------------------------------------------------
 GetBirdRow PROC
 ; Returns: EAX = playfield row of the bird (birdY / 4)
 ;------------------------------------------------------------------
@@ -164,6 +211,14 @@ DrawFrame PROC USES eax ebx ecx edx esi edi
 ; Draws the borders, every playfield row, and the bird.
 ; Receives: nothing   Returns: nothing
 ;------------------------------------------------------------------
+    mov  dh, 0              ; score line
+    mov  dl, 0
+    call Gotoxy
+    mov  edx, OFFSET scoreMsg
+    call WriteString
+    mov  eax, score
+    call WriteDec
+
     mov  dh, FIELD_TOP - 1  ; top border
     mov  dl, 0
     call Gotoxy
