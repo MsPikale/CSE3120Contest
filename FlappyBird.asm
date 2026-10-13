@@ -29,17 +29,28 @@ birdVel     SDWORD ?        ; bird speed (1/4 rows per frame, negative = up)
 quitFlag    DWORD 0
 alive       DWORD ?         ; 1 while the bird is still flying
 score       DWORD ?
+bestScore   DWORD 0
 pipeX       SDWORD NUM_PIPES DUP(?)     ; left column of each pipe
 gapTop      SDWORD NUM_PIPES DUP(?)     ; first open row of each pipe
 
 rowBuf      BYTE '|', FIELD_W DUP(' '), '|', 0
 borderLine  BYTE '+', FIELD_W DUP('-'), '+', 0
 scoreMsg    BYTE "Score: ", 0
+bestMsg     BYTE "   Best: ", 0
+titleMsg    BYTE "F L A P P Y   B I R D", 0
+startMsg    BYTE "Press SPACE to start, ESC to quit", 0
+overMsg     BYTE "G A M E   O V E R", 0
+againMsg    BYTE "R = play again     ESC = quit", 0
 helpMsg     BYTE "SPACE / W = flap     ESC = quit", 0
 
 .code
 main PROC
     call Randomize
+    call ShowTitle
+    cmp  quitFlag, 1
+    je   Quit
+
+NewGame:
     call Clrscr
     call ResetGame
 
@@ -52,10 +63,15 @@ GameLoop:
     call CheckCollision
     call DrawFrame
     cmp  alive, 0
-    je   Quit
+    je   GameOver
     mov  eax, FRAME_MS
     call Delay
     jmp  GameLoop
+
+GameOver:
+    call ShowGameOver       ; sets quitFlag when the player picks ESC
+    cmp  quitFlag, 1
+    jne  NewGame
 
 Quit:
     call Clrscr
@@ -218,6 +234,10 @@ DrawFrame PROC USES eax ebx ecx edx esi edi
     call WriteString
     mov  eax, score
     call WriteDec
+    mov  edx, OFFSET bestMsg
+    call WriteString
+    mov  eax, bestScore
+    call WriteDec
 
     mov  dh, FIELD_TOP - 1  ; top border
     mov  dl, 0
@@ -304,5 +324,100 @@ NextPipe:
     call Gotoxy
     ret
 DrawFrame ENDP
+
+;------------------------------------------------------------------
+WaitKey PROC USES ebx edx
+; Waits until a key is pressed.
+; Returns: AL = ASCII code of the key
+;------------------------------------------------------------------
+Wait1:
+    mov  eax, 10
+    call Delay
+    call ReadKey            ; ZF = 1 when no key is waiting
+    jz   Wait1
+    ret
+WaitKey ENDP
+
+;------------------------------------------------------------------
+ShowTitle PROC USES eax edx
+; Shows the title screen and waits for SPACE (play) or ESC (quit).
+; Returns: quitFlag = 1 if the player chose ESC
+;------------------------------------------------------------------
+    call Clrscr
+    mov  dh, FIELD_TOP + 7
+    mov  dl, 20
+    call Gotoxy
+    mov  edx, OFFSET titleMsg
+    call WriteString
+    mov  dh, FIELD_TOP + 10
+    mov  dl, 14
+    call Gotoxy
+    mov  edx, OFFSET startMsg
+    call WriteString
+    mov  dh, FIELD_TOP + 12
+    mov  dl, 15
+    call Gotoxy
+    mov  edx, OFFSET helpMsg
+    call WriteString
+
+KeyLoop:
+    call WaitKey
+    .IF al == KEY_SPACE
+        ret
+    .ELSEIF al == KEY_ESC
+        mov  quitFlag, 1
+        ret
+    .ENDIF
+    jmp  KeyLoop
+ShowTitle ENDP
+
+;------------------------------------------------------------------
+ShowGameOver PROC USES eax edx
+; Updates the best score, shows the game over message, and waits
+; for R (play again) or ESC (quit).
+; Returns: quitFlag = 1 if the player chose ESC
+;------------------------------------------------------------------
+    mov  eax, score
+    .IF eax > bestScore
+        mov  bestScore, eax
+    .ENDIF
+
+    mov  dh, FIELD_TOP + 7
+    mov  dl, 22
+    call Gotoxy
+    mov  edx, OFFSET overMsg
+    call WriteString
+    mov  dh, FIELD_TOP + 9
+    mov  dl, 22
+    call Gotoxy
+    mov  edx, OFFSET scoreMsg
+    call WriteString
+    mov  eax, score
+    call WriteDec
+    mov  edx, OFFSET bestMsg
+    call WriteString
+    mov  eax, bestScore
+    call WriteDec
+    mov  dh, FIELD_TOP + 11
+    mov  dl, 16
+    call Gotoxy
+    mov  edx, OFFSET againMsg
+    call WriteString
+
+    mov  eax, 600           ; short pause so a held SPACE does not skip this
+    call Delay
+
+KeyLoop:
+    call WaitKey
+    .IF al == 'r'
+        ret
+    .ELSEIF al == 'R'
+        ret
+    .ELSEIF al == KEY_ESC
+        mov  quitFlag, 1
+        ret
+    .ENDIF
+    jmp  KeyLoop
+ShowGameOver ENDP
 
 END main
