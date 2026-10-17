@@ -1,37 +1,34 @@
-; FlappyBird.asm - a Flappy Bird style game for the console
-; Uses the Irvine32 library.
-
+; FlappyBird.asm - Flappy Bird style console game (Irvine32)
 INCLUDE Irvine32.inc
 
-;------------------------- game constants -------------------------
-FIELD_W     = 60            ; playfield width in columns
-FIELD_H     = 20            ; playfield height in rows
-FIELD_TOP   = 2             ; screen row of the first playfield row
-BIRD_X      = 12            ; column the bird stays in
+FIELD_W     = 60
+FIELD_H     = 20
+FIELD_TOP   = 2
+BIRD_X      = 12
 BIRD_CHAR   = '@'
 PIPE_CHAR   = '#'
-PIPE_W      = 3             ; pipe thickness in columns
-GAP_H       = 6             ; height of the opening in each pipe
+PIPE_W      = 3
+GAP_H       = 6
 NUM_PIPES   = 3
-PIPE_SPACING = 25           ; columns between pipes
-SCALE_SHIFT = 2             ; bird Y is stored in 1/4 row units (shift by 2)
+PIPE_SPACING = 25
+SCALE_SHIFT = 2             ; birdY is in 1/4 rows
 START_Y     = (FIELD_H / 2) * 4
-GRAVITY     = 1             ; added to velocity every frame
-FLAP_VEL    = -5            ; velocity after a flap
-MAX_FALL    = 4             ; fastest falling speed
-FRAME_MS    = 50            ; delay between frames
+GRAVITY     = 1
+FLAP_VEL    = -5
+MAX_FALL    = 4
+FRAME_MS    = 50
 KEY_ESC     = 27
 KEY_SPACE   = 32
 
 .data
-birdY       SDWORD ?        ; bird height (1/4 rows, 0 = top)
-birdVel     SDWORD ?        ; bird speed (1/4 rows per frame, negative = up)
+birdY       SDWORD ?
+birdVel     SDWORD ?
 quitFlag    DWORD 0
-alive       DWORD ?         ; 1 while the bird is still flying
+alive       DWORD ?
 score       DWORD ?
 bestScore   DWORD 0
-pipeX       SDWORD NUM_PIPES DUP(?)     ; left column of each pipe
-gapTop      SDWORD NUM_PIPES DUP(?)     ; first open row of each pipe
+pipeX       SDWORD NUM_PIPES DUP(?)
+gapTop      SDWORD NUM_PIPES DUP(?)
 
 rowBuf      BYTE '|', FIELD_W DUP(' '), '|', 0
 borderLine  BYTE '+', FIELD_W DUP('-'), '+', 0
@@ -69,7 +66,7 @@ GameLoop:
     jmp  GameLoop
 
 GameOver:
-    call ShowGameOver       ; sets quitFlag when the player picks ESC
+    call ShowGameOver
     cmp  quitFlag, 1
     jne  NewGame
 
@@ -78,19 +75,14 @@ Quit:
     exit
 main ENDP
 
-;------------------------------------------------------------------
 ResetGame PROC USES eax ebx esi
-; Puts the bird back in the middle and lines the pipes up
-; off the right side of the screen.
-; Receives: nothing   Returns: nothing
-;------------------------------------------------------------------
     mov  birdY, START_Y
     mov  birdVel, 0
     mov  score, 0
     mov  alive, 1
 
     mov  esi, 0
-    mov  ebx, FIELD_W       ; first pipe starts at the right edge
+    mov  ebx, FIELD_W
 PipeLoop:
     mov  pipeX[esi], ebx
     call RandomGap
@@ -102,31 +94,22 @@ PipeLoop:
     ret
 ResetGame ENDP
 
-;------------------------------------------------------------------
 RandomGap PROC
-; Returns: EAX = random gap top row, 1 .. FIELD_H - GAP_H - 1
-;------------------------------------------------------------------
     mov  eax, FIELD_H - GAP_H - 1
-    call RandomRange        ; 0 .. FIELD_H - GAP_H - 2
+    call RandomRange
     inc  eax
     ret
 RandomGap ENDP
 
-;------------------------------------------------------------------
 UpdatePipes PROC USES eax esi
-; Moves every pipe one column left and scores each pipe the bird
-; gets past. A pipe that leaves the screen jumps back behind the
-; last pipe with a new random gap.
-; Receives: nothing   Returns: nothing
-;------------------------------------------------------------------
     mov  esi, 0
 PipeLoop:
     dec  pipeX[esi]
-    cmp  pipeX[esi], BIRD_X - PIPE_W    ; right edge just passed the bird?
+    cmp  pipeX[esi], BIRD_X - PIPE_W
     jne  CheckEdge
     inc  score
 CheckEdge:
-    cmp  pipeX[esi], -PIPE_W        ; completely off the left edge?
+    cmp  pipeX[esi], -PIPE_W
     jg   NextPipe
     add  pipeX[esi], NUM_PIPES * PIPE_SPACING
     call RandomGap
@@ -138,12 +121,8 @@ NextPipe:
     ret
 UpdatePipes ENDP
 
-;------------------------------------------------------------------
 HandleInput PROC USES eax ebx edx
-; Reads one key without waiting. SPACE/W flaps, ESC quits.
-; Receives: nothing   Returns: nothing
-;------------------------------------------------------------------
-    call ReadKey            ; ZF = 1 when no key is waiting
+    call ReadKey            ; ZF = 1 when no key
     jz   Done
     .IF al == KEY_SPACE
         mov  birdVel, FLAP_VEL
@@ -158,11 +137,7 @@ Done:
     ret
 HandleInput ENDP
 
-;------------------------------------------------------------------
 UpdateBird PROC USES eax
-; Applies gravity, moves the bird, and stops it at the ceiling.
-; Receives: nothing   Returns: nothing
-;------------------------------------------------------------------
     mov  eax, birdVel
     add  eax, GRAVITY
     cmp  eax, MAX_FALL
@@ -171,7 +146,7 @@ UpdateBird PROC USES eax
 SpeedOk:
     mov  birdVel, eax
     add  birdY, eax
-    cmp  birdY, 0           ; above the top? hold it at the ceiling
+    cmp  birdY, 0
     jge  Done
     mov  birdY, 0
     mov  birdVel, 0
@@ -179,30 +154,26 @@ Done:
     ret
 UpdateBird ENDP
 
-;------------------------------------------------------------------
 CheckCollision PROC USES eax ebx esi
-; Sets alive = 0 if the bird hit the ground or a pipe.
-; Receives: nothing   Returns: nothing
-;------------------------------------------------------------------
     call GetBirdRow
     cmp  eax, FIELD_H
-    jge  Dead               ; hit the ground
-    mov  ebx, eax           ; ebx = bird row
+    jge  Dead
+    mov  ebx, eax
 
     mov  esi, 0
 PipeLoop:
     mov  eax, pipeX[esi]
     cmp  eax, BIRD_X
-    jg   NextPipe           ; pipe is still to the right of the bird
+    jg   NextPipe
     add  eax, PIPE_W
     cmp  eax, BIRD_X
-    jle  NextPipe           ; pipe is already to the left of the bird
+    jle  NextPipe
     mov  eax, gapTop[esi]
     cmp  ebx, eax
-    jl   Dead               ; above the gap
+    jl   Dead
     add  eax, GAP_H
     cmp  ebx, eax
-    jge  Dead               ; below the gap
+    jge  Dead
 NextPipe:
     add  esi, TYPE pipeX
     cmp  esi, SIZEOF pipeX
@@ -213,21 +184,16 @@ Dead:
     ret
 CheckCollision ENDP
 
-;------------------------------------------------------------------
 GetBirdRow PROC
-; Returns: EAX = playfield row of the bird (birdY / 4)
-;------------------------------------------------------------------
     mov  eax, birdY
     sar  eax, SCALE_SHIFT
     ret
 GetBirdRow ENDP
 
-;------------------------------------------------------------------
 DrawFrame PROC USES eax ebx ecx edx esi edi
-; Draws the borders, every playfield row, and the bird.
-; Receives: nothing   Returns: nothing
-;------------------------------------------------------------------
-    mov  dh, 0              ; score line
+    mov  eax, white + (black * 16)
+    call SetTextColor
+    mov  dh, 0
     mov  dl, 0
     call Gotoxy
     mov  edx, OFFSET scoreMsg
@@ -239,15 +205,16 @@ DrawFrame PROC USES eax ebx ecx edx esi edi
     mov  eax, bestScore
     call WriteDec
 
-    mov  dh, FIELD_TOP - 1  ; top border
+    mov  dh, FIELD_TOP - 1
     mov  dl, 0
     call Gotoxy
     mov  edx, OFFSET borderLine
     call WriteString
 
-    mov  ecx, 0             ; ecx = current row
+    mov  eax, lightGreen + (black * 16)
+    call SetTextColor
+    mov  ecx, 0
 RowLoop:
-    ; blank the inside of the row
     mov  edi, OFFSET rowBuf + 1
     push ecx
     mov  ecx, FIELD_W
@@ -256,24 +223,23 @@ RowLoop:
     rep  stosb
     pop  ecx
 
-    ; draw the solid part of every pipe that crosses this row
     mov  esi, 0
 PipeLoop:
     mov  eax, gapTop[esi]
     cmp  ecx, eax
-    jl   Solid              ; row is above the gap
+    jl   Solid
     add  eax, GAP_H
     cmp  ecx, eax
-    jl   NextPipe           ; row is inside the gap
+    jl   NextPipe
 Solid:
     mov  ebx, pipeX[esi]
-    inc  ebx                ; ebx = index in rowBuf (+1 for left border)
-    mov  edx, 0             ; edx = columns drawn so far
+    inc  ebx
+    mov  edx, 0
 ColLoop:
     cmp  ebx, 1
-    jl   NextCol            ; off the left side
+    jl   NextCol
     cmp  ebx, FIELD_W
-    jg   NextCol            ; off the right side
+    jg   NextCol
     mov  rowBuf[ebx], PIPE_CHAR
 NextCol:
     inc  ebx
@@ -295,8 +261,10 @@ NextPipe:
     inc  ecx
     cmp  ecx, FIELD_H
     jl   RowLoop
+    mov  eax, white + (black * 16)
+    call SetTextColor
 
-    mov  dh, FIELD_TOP + FIELD_H    ; bottom border
+    mov  dh, FIELD_TOP + FIELD_H
     mov  dl, 0
     call Gotoxy
     mov  edx, OFFSET borderLine
@@ -308,47 +276,46 @@ NextPipe:
     mov  edx, OFFSET helpMsg
     call WriteString
 
-    ; bird
     call GetBirdRow
     .IF eax < FIELD_H
         mov  dh, al
         add  dh, FIELD_TOP
-        mov  dl, BIRD_X + 1     ; +1 skips the left border
+        mov  dl, BIRD_X + 1
         call Gotoxy
+        mov  eax, yellow + (black * 16)
+        call SetTextColor
         mov  al, BIRD_CHAR
         call WriteChar
+        mov  eax, white + (black * 16)
+        call SetTextColor
     .ENDIF
 
-    mov  dh, FIELD_TOP + FIELD_H + 2    ; park the cursor below the game
+    mov  dh, FIELD_TOP + FIELD_H + 2
     mov  dl, 0
     call Gotoxy
     ret
 DrawFrame ENDP
 
-;------------------------------------------------------------------
 WaitKey PROC USES ebx edx
-; Waits until a key is pressed.
-; Returns: AL = ASCII code of the key
-;------------------------------------------------------------------
 Wait1:
     mov  eax, 10
     call Delay
-    call ReadKey            ; ZF = 1 when no key is waiting
+    call ReadKey
     jz   Wait1
     ret
 WaitKey ENDP
 
-;------------------------------------------------------------------
 ShowTitle PROC USES eax edx
-; Shows the title screen and waits for SPACE (play) or ESC (quit).
-; Returns: quitFlag = 1 if the player chose ESC
-;------------------------------------------------------------------
     call Clrscr
     mov  dh, FIELD_TOP + 7
     mov  dl, 20
     call Gotoxy
     mov  edx, OFFSET titleMsg
+    mov  eax, yellow + (black * 16)
+    call SetTextColor
     call WriteString
+    mov  eax, white + (black * 16)
+    call SetTextColor
     mov  dh, FIELD_TOP + 10
     mov  dl, 14
     call Gotoxy
@@ -371,12 +338,7 @@ KeyLoop:
     jmp  KeyLoop
 ShowTitle ENDP
 
-;------------------------------------------------------------------
 ShowGameOver PROC USES eax edx
-; Updates the best score, shows the game over message, and waits
-; for R (play again) or ESC (quit).
-; Returns: quitFlag = 1 if the player chose ESC
-;------------------------------------------------------------------
     mov  eax, score
     .IF eax > bestScore
         mov  bestScore, eax
@@ -386,7 +348,11 @@ ShowGameOver PROC USES eax edx
     mov  dl, 22
     call Gotoxy
     mov  edx, OFFSET overMsg
+    mov  eax, yellow + (black * 16)
+    call SetTextColor
     call WriteString
+    mov  eax, white + (black * 16)
+    call SetTextColor
     mov  dh, FIELD_TOP + 9
     mov  dl, 22
     call Gotoxy
@@ -404,7 +370,7 @@ ShowGameOver PROC USES eax edx
     mov  edx, OFFSET againMsg
     call WriteString
 
-    mov  eax, 600           ; short pause so a held SPACE does not skip this
+    mov  eax, 600           ; ignore a held SPACE
     call Delay
 
 KeyLoop:
