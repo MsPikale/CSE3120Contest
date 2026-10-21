@@ -12,11 +12,17 @@ TICK_MS      = 80
 .data
 subShape   BYTE "<=>",0
 subY       BYTE 10
+alive      BYTE 1
 
 .code
 main PROC
     call Clrscr
+gameLoop:
+    mov eax, TICK_MS
+    call Delay
     call UpdateSub
+    cmp alive, 1
+    je gameLoop
     exit
 main ENDP
 
