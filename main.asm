@@ -11,7 +11,9 @@ TICK_MS      = 80
 
 .data
 subShape   BYTE "<=>",0
+blankStr   BYTE "   ",0
 subY       BYTE 10
+vel        SBYTE 0
 alive      BYTE 1
 
 .code
@@ -27,6 +29,19 @@ gameLoop:
 main ENDP
 
 UpdateSub PROC
+    mov dl, SUB_X
+    mov dh, subY
+    call Gotoxy
+    mov edx, OFFSET blankStr
+    call WriteString
+    inc vel
+    cmp vel, 1
+    jle velOk
+    mov vel, 1
+velOk:
+    mov al, subY
+    add al, vel
+    mov subY, al
     mov dl, SUB_X
     mov dh, subY
     call Gotoxy
