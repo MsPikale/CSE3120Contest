@@ -1,4 +1,4 @@
-; FlappyBird.asm - Flappy Bird style console game (Irvine32)
+; SinkingSubmarine.asm - console game (Irvine32)
 INCLUDE Irvine32.inc
 
 FIELD_W     = 60
@@ -34,7 +34,7 @@ rowBuf      BYTE '|', FIELD_W DUP(' '), '|', 0
 borderLine  BYTE '+', FIELD_W DUP('-'), '+', 0
 scoreMsg    BYTE "Score: ", 0
 bestMsg     BYTE "   Best: ", 0
-titleMsg    BYTE "F L A P P Y   B I R D", 0
+titleMsg    BYTE "S I N K I N G   S U B M A R I N E", 0
 startMsg    BYTE "Press SPACE to start, ESC to quit", 0
 overMsg     BYTE "G A M E   O V E R", 0
 againMsg    BYTE "R = play again     ESC = quit", 0
@@ -308,7 +308,7 @@ WaitKey ENDP
 ShowTitle PROC USES eax edx
     call Clrscr
     mov  dh, FIELD_TOP + 7
-    mov  dl, 20
+    mov  dl, 14
     call Gotoxy
     mov  edx, OFFSET titleMsg
     mov  eax, yellow + (black * 16)

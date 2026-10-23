@@ -1,7 +1,7 @@
 # CSE3120Contest
 
-# Tetris Game
+# Sinking Submarine
 
 ## Team - Dylin Irons, Dominick Morales
 
-A tetris game written in MASM assembly.
+A console game written in MASM assembly with the Irvine32 library. Your submarine keeps floating up, so tap to dive and steer it through the gaps in the rocks without hitting the surface or the seabed.
