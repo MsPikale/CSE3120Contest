@@ -4,14 +4,14 @@ INCLUDE Irvine32.inc
 FIELD_W     = 60
 FIELD_H     = 20
 FIELD_TOP   = 2
-BIRD_X      = 12
-BIRD_CHAR   = '@'
-PIPE_CHAR   = '#'
-PIPE_W      = 3
+SUB_X       = 12
+SUB_HALF    = 1
+ROCK_CHAR   = '%'
+ROCK_W      = 3
 GAP_H       = 6
-NUM_PIPES   = 3
-PIPE_SPACING = 25
-SCALE_SHIFT = 2             ; birdY is in 1/4 rows
+NUM_ROCKS   = 3
+ROCK_SPACING = 25
+SCALE_SHIFT = 2             ; subY is in 1/4 rows
 START_Y     = (FIELD_H / 2) * 4
 GRAVITY     = 1
 FLAP_VEL    = -5
@@ -21,17 +21,18 @@ KEY_ESC     = 27
 KEY_SPACE   = 32
 
 .data
-birdY       SDWORD ?
-birdVel     SDWORD ?
+subY        SDWORD ?
+subVel      SDWORD ?
 quitFlag    DWORD 0
 alive       DWORD ?
 score       DWORD ?
 bestScore   DWORD 0
-pipeX       SDWORD NUM_PIPES DUP(?)
-gapTop      SDWORD NUM_PIPES DUP(?)
+rockX       SDWORD NUM_ROCKS DUP(?)
+gapTop      SDWORD NUM_ROCKS DUP(?)
 
 rowBuf      BYTE '|', FIELD_W DUP(' '), '|', 0
 borderLine  BYTE '+', FIELD_W DUP('-'), '+', 0
+subSprite   BYTE "<O>", 0
 scoreMsg    BYTE "Score: ", 0
 bestMsg     BYTE "   Best: ", 0
 titleMsg    BYTE "S I N K I N G   S U B M A R I N E", 0
@@ -55,8 +56,8 @@ GameLoop:
     call HandleInput
     cmp  quitFlag, 1
     je   Quit
-    call UpdateBird
-    call UpdatePipes
+    call UpdateSub
+    call UpdateRocks
     call CheckCollision
     call DrawFrame
     cmp  alive, 0
@@ -76,21 +77,21 @@ Quit:
 main ENDP
 
 ResetGame PROC USES eax ebx esi
-    mov  birdY, START_Y
-    mov  birdVel, 0
+    mov  subY, START_Y
+    mov  subVel, 0
     mov  score, 0
     mov  alive, 1
 
     mov  esi, 0
     mov  ebx, FIELD_W
-PipeLoop:
-    mov  pipeX[esi], ebx
+RockLoop:
+    mov  rockX[esi], ebx
     call RandomGap
     mov  gapTop[esi], eax
-    add  ebx, PIPE_SPACING
-    add  esi, TYPE pipeX
-    cmp  esi, SIZEOF pipeX
-    jl   PipeLoop
+    add  ebx, ROCK_SPACING
+    add  esi, TYPE rockX
+    cmp  esi, SIZEOF rockX
+    jl   RockLoop
     ret
 ResetGame ENDP
 
@@ -101,35 +102,35 @@ RandomGap PROC
     ret
 RandomGap ENDP
 
-UpdatePipes PROC USES eax esi
+UpdateRocks PROC USES eax esi
     mov  esi, 0
-PipeLoop:
-    dec  pipeX[esi]
-    cmp  pipeX[esi], BIRD_X - PIPE_W
+RockLoop:
+    dec  rockX[esi]
+    cmp  rockX[esi], SUB_X - SUB_HALF - ROCK_W
     jne  CheckEdge
     inc  score
 CheckEdge:
-    cmp  pipeX[esi], -PIPE_W
-    jg   NextPipe
-    add  pipeX[esi], NUM_PIPES * PIPE_SPACING
+    cmp  rockX[esi], -ROCK_W
+    jg   NextRock
+    add  rockX[esi], NUM_ROCKS * ROCK_SPACING
     call RandomGap
     mov  gapTop[esi], eax
-NextPipe:
-    add  esi, TYPE pipeX
-    cmp  esi, SIZEOF pipeX
-    jl   PipeLoop
+NextRock:
+    add  esi, TYPE rockX
+    cmp  esi, SIZEOF rockX
+    jl   RockLoop
     ret
-UpdatePipes ENDP
+UpdateRocks ENDP
 
 HandleInput PROC USES eax ebx edx
     call ReadKey            ; ZF = 1 when no key
     jz   Done
     .IF al == KEY_SPACE
-        mov  birdVel, FLAP_VEL
+        mov  subVel, FLAP_VEL
     .ELSEIF al == 'w'
-        mov  birdVel, FLAP_VEL
+        mov  subVel, FLAP_VEL
     .ELSEIF al == 'W'
-        mov  birdVel, FLAP_VEL
+        mov  subVel, FLAP_VEL
     .ELSEIF al == KEY_ESC
         mov  quitFlag, 1
     .ENDIF
@@ -137,58 +138,58 @@ Done:
     ret
 HandleInput ENDP
 
-UpdateBird PROC USES eax
-    mov  eax, birdVel
+UpdateSub PROC USES eax
+    mov  eax, subVel
     add  eax, GRAVITY
     cmp  eax, MAX_FALL
     jle  SpeedOk
     mov  eax, MAX_FALL
 SpeedOk:
-    mov  birdVel, eax
-    add  birdY, eax
-    cmp  birdY, 0
+    mov  subVel, eax
+    add  subY, eax
+    cmp  subY, 0
     jge  Done
-    mov  birdY, 0
-    mov  birdVel, 0
+    mov  subY, 0
+    mov  subVel, 0
 Done:
     ret
-UpdateBird ENDP
+UpdateSub ENDP
 
 CheckCollision PROC USES eax ebx esi
-    call GetBirdRow
+    call GetSubRow
     cmp  eax, FIELD_H
     jge  Dead
     mov  ebx, eax
 
     mov  esi, 0
-PipeLoop:
-    mov  eax, pipeX[esi]
-    cmp  eax, BIRD_X
-    jg   NextPipe
-    add  eax, PIPE_W
-    cmp  eax, BIRD_X
-    jle  NextPipe
+RockLoop:
+    mov  eax, rockX[esi]
+    cmp  eax, SUB_X + SUB_HALF
+    jg   NextRock
+    add  eax, ROCK_W
+    cmp  eax, SUB_X - SUB_HALF
+    jle  NextRock
     mov  eax, gapTop[esi]
     cmp  ebx, eax
     jl   Dead
     add  eax, GAP_H
     cmp  ebx, eax
     jge  Dead
-NextPipe:
-    add  esi, TYPE pipeX
-    cmp  esi, SIZEOF pipeX
-    jl   PipeLoop
+NextRock:
+    add  esi, TYPE rockX
+    cmp  esi, SIZEOF rockX
+    jl   RockLoop
     ret
 Dead:
     mov  alive, 0
     ret
 CheckCollision ENDP
 
-GetBirdRow PROC
-    mov  eax, birdY
+GetSubRow PROC
+    mov  eax, subY
     sar  eax, SCALE_SHIFT
     ret
-GetBirdRow ENDP
+GetSubRow ENDP
 
 DrawFrame PROC USES eax ebx ecx edx esi edi
     mov  eax, white + (black * 16)
@@ -224,15 +225,15 @@ RowLoop:
     pop  ecx
 
     mov  esi, 0
-PipeLoop:
+RockLoop:
     mov  eax, gapTop[esi]
     cmp  ecx, eax
     jl   Solid
     add  eax, GAP_H
     cmp  ecx, eax
-    jl   NextPipe
+    jl   NextRock
 Solid:
-    mov  ebx, pipeX[esi]
+    mov  ebx, rockX[esi]
     inc  ebx
     mov  edx, 0
 ColLoop:
@@ -240,16 +241,16 @@ ColLoop:
     jl   NextCol
     cmp  ebx, FIELD_W
     jg   NextCol
-    mov  rowBuf[ebx], PIPE_CHAR
+    mov  rowBuf[ebx], ROCK_CHAR
 NextCol:
     inc  ebx
     inc  edx
-    cmp  edx, PIPE_W
+    cmp  edx, ROCK_W
     jl   ColLoop
-NextPipe:
-    add  esi, TYPE pipeX
-    cmp  esi, SIZEOF pipeX
-    jl   PipeLoop
+NextRock:
+    add  esi, TYPE rockX
+    cmp  esi, SIZEOF rockX
+    jl   RockLoop
 
     mov  dh, cl
     add  dh, FIELD_TOP
@@ -276,16 +277,16 @@ NextPipe:
     mov  edx, OFFSET helpMsg
     call WriteString
 
-    call GetBirdRow
+    call GetSubRow
     .IF eax < FIELD_H
         mov  dh, al
         add  dh, FIELD_TOP
-        mov  dl, BIRD_X + 1
+        mov  dl, SUB_X
         call Gotoxy
         mov  eax, yellow + (black * 16)
         call SetTextColor
-        mov  al, BIRD_CHAR
-        call WriteChar
+        mov  edx, OFFSET subSprite
+        call WriteString
         mov  eax, white + (black * 16)
         call SetTextColor
     .ENDIF
