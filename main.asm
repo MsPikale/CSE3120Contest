@@ -19,6 +19,7 @@ alive      BYTE 1
 .code
 main PROC
     call Clrscr
+    call DrawFloor
 gameLoop:
     mov eax, TICK_MS
     call Delay
@@ -29,6 +30,18 @@ gameLoop:
     je gameLoop
     exit
 main ENDP
+
+DrawFloor PROC
+    mov dl, 0
+    mov dh, FLOOR_Y
+    call Gotoxy
+    mov al, '='
+    mov ecx, 79
+floorLoop:
+    call WriteChar
+    loop floorLoop
+    ret
+DrawFloor ENDP
 
 CheckHit PROC
     cmp subY, FLOOR_Y
