@@ -22,11 +22,24 @@ main PROC
 gameLoop:
     mov eax, TICK_MS
     call Delay
+    call CheckInput
     call UpdateSub
     cmp alive, 1
     je gameLoop
     exit
 main ENDP
+
+CheckInput PROC
+readMore:
+    call ReadKey
+    jz noKey
+    cmp al, ' '
+    jne readMore
+    mov vel, FLAP_VEL
+    jmp readMore
+noKey:
+    ret
+CheckInput ENDP
 
 UpdateSub PROC
     mov dl, SUB_X
