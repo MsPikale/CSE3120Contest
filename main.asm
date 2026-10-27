@@ -24,10 +24,20 @@ gameLoop:
     call Delay
     call CheckInput
     call UpdateSub
+    call CheckHit
     cmp alive, 1
     je gameLoop
     exit
 main ENDP
+
+CheckHit PROC
+    cmp subY, FLOOR_Y
+    jae dead
+    ret
+dead:
+    mov alive, 0
+    ret
+CheckHit ENDP
 
 CheckInput PROC
 readMore:
@@ -54,6 +64,10 @@ UpdateSub PROC
 velOk:
     mov al, subY
     add al, vel
+    cmp al, 1
+    jge notTop
+    mov al, 1
+notTop:
     mov subY, al
     mov dl, SUB_X
     mov dh, subY
