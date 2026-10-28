@@ -13,9 +13,9 @@ NUM_ROCKS   = 3
 ROCK_SPACING = 25
 SCALE_SHIFT = 2             ; subY is in 1/4 rows
 START_Y     = (FIELD_H / 2) * 4
-GRAVITY     = 1
-FLAP_VEL    = -5
-MAX_FALL    = 4
+BUOYANCY    = 1
+DIVE_VEL    = 5
+MAX_RISE    = -4
 FRAME_MS    = 50
 KEY_ESC     = 27
 KEY_SPACE   = 32
@@ -39,7 +39,7 @@ titleMsg    BYTE "S I N K I N G   S U B M A R I N E", 0
 startMsg    BYTE "Press SPACE to start, ESC to quit", 0
 overMsg     BYTE "G A M E   O V E R", 0
 againMsg    BYTE "R = play again     ESC = quit", 0
-helpMsg     BYTE "SPACE / W = flap     ESC = quit", 0
+helpMsg     BYTE "SPACE / S = dive     ESC = quit", 0
 
 .code
 main PROC
@@ -126,11 +126,11 @@ HandleInput PROC USES eax ebx edx
     call ReadKey            ; ZF = 1 when no key
     jz   Done
     .IF al == KEY_SPACE
-        mov  subVel, FLAP_VEL
-    .ELSEIF al == 'w'
-        mov  subVel, FLAP_VEL
-    .ELSEIF al == 'W'
-        mov  subVel, FLAP_VEL
+        mov  subVel, DIVE_VEL
+    .ELSEIF al == 's'
+        mov  subVel, DIVE_VEL
+    .ELSEIF al == 'S'
+        mov  subVel, DIVE_VEL
     .ELSEIF al == KEY_ESC
         mov  quitFlag, 1
     .ENDIF
@@ -140,23 +140,20 @@ HandleInput ENDP
 
 UpdateSub PROC USES eax
     mov  eax, subVel
-    add  eax, GRAVITY
-    cmp  eax, MAX_FALL
-    jle  SpeedOk
-    mov  eax, MAX_FALL
+    sub  eax, BUOYANCY
+    cmp  eax, MAX_RISE
+    jge  SpeedOk
+    mov  eax, MAX_RISE
 SpeedOk:
     mov  subVel, eax
     add  subY, eax
-    cmp  subY, 0
-    jge  Done
-    mov  subY, 0
-    mov  subVel, 0
-Done:
     ret
 UpdateSub ENDP
 
 CheckCollision PROC USES eax ebx esi
     call GetSubRow
+    cmp  eax, 0
+    jl   Dead
     cmp  eax, FIELD_H
     jge  Dead
     mov  ebx, eax
