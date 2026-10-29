@@ -43,6 +43,25 @@ floorLoop:
     ret
 DrawFloor ENDP
 
+DrawColumn PROC
+    mov dh, 1
+rowLoop:
+    cmp dh, bl
+    jb solid
+    mov ah, bl
+    add ah, GAP_H
+    cmp dh, ah
+    jb skipRow
+solid:
+    call Gotoxy
+    call WriteChar
+skipRow:
+    inc dh
+    cmp dh, FLOOR_Y
+    jb rowLoop
+    ret
+DrawColumn ENDP
+
 CheckHit PROC
     cmp subY, FLOOR_Y
     jae dead
