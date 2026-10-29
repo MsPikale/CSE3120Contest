@@ -20,12 +20,14 @@ alive      BYTE 1
 
 .code
 main PROC
+    call Randomize
     call Clrscr
     call DrawFloor
 gameLoop:
     mov eax, TICK_MS
     call Delay
     call CheckInput
+    call UpdateWalls
     call UpdateSub
     call CheckHit
     cmp alive, 1
@@ -72,6 +74,14 @@ nextWall:
     mov al, ' '
     call DrawColumn
     dec wallX[esi]
+    jnz drawIt
+    mov wallX[esi], WALL_START
+    mov eax, FLOOR_Y - GAP_H - 1
+    call RandomRange
+    inc al
+    mov gapY[esi], al
+    mov bl, al
+drawIt:
     mov dl, wallX[esi]
     mov al, '#'
     call DrawColumn
