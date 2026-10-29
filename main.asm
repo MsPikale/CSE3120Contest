@@ -14,6 +14,8 @@ subShape   BYTE "<=>",0
 blankStr   BYTE "   ",0
 subY       BYTE 10
 vel        SBYTE 0
+wallX      BYTE 26, 52, 78
+gapY       BYTE 7, 4, 10
 alive      BYTE 1
 
 .code
@@ -61,6 +63,23 @@ skipRow:
     jb rowLoop
     ret
 DrawColumn ENDP
+
+UpdateWalls PROC USES esi ebx
+    mov esi, 0
+nextWall:
+    mov dl, wallX[esi]
+    mov bl, gapY[esi]
+    mov al, ' '
+    call DrawColumn
+    dec wallX[esi]
+    mov dl, wallX[esi]
+    mov al, '#'
+    call DrawColumn
+    inc esi
+    cmp esi, LENGTHOF wallX
+    jb nextWall
+    ret
+UpdateWalls ENDP
 
 CheckHit PROC
     cmp subY, FLOOR_Y
