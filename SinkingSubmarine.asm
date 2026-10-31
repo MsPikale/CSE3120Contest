@@ -27,7 +27,8 @@ quitFlag    DWORD 0
 alive       DWORD ?
 score       DWORD ?
 bestScore   DWORD 0
-rockX       SDWORD NUM_ROCKS DUP(?)
+oldColor    DWORD ?
+rockX      SDWORD NUM_ROCKS DUP(?)
 gapTop      SDWORD NUM_ROCKS DUP(?)
 
 rowBuf      BYTE '|', FIELD_W DUP(' '), '|', 0
@@ -43,6 +44,11 @@ helpMsg     BYTE "SPACE / S = dive     ESC = quit", 0
 
 .code
 main PROC
+    call GetTextColor
+    movzx eax, al
+    mov  oldColor, eax
+    mov  eax, yellow + (blue * 16)
+    call SetTextColor
     call Randomize
     call ShowTitle
     cmp  quitFlag, 1
@@ -72,6 +78,8 @@ GameOver:
     jne  NewGame
 
 Quit:
+    mov  eax, oldColor
+    call SetTextColor
     call Clrscr
     exit
 main ENDP
@@ -189,8 +197,6 @@ GetSubRow PROC
 GetSubRow ENDP
 
 DrawFrame PROC USES eax ebx ecx edx esi edi
-    mov  eax, white + (black * 16)
-    call SetTextColor
     mov  dh, 0
     mov  dl, 0
     call Gotoxy
@@ -209,8 +215,6 @@ DrawFrame PROC USES eax ebx ecx edx esi edi
     mov  edx, OFFSET borderLine
     call WriteString
 
-    mov  eax, lightGreen + (black * 16)
-    call SetTextColor
     mov  ecx, 0
 RowLoop:
     mov  edi, OFFSET rowBuf + 1
@@ -259,8 +263,6 @@ NextRock:
     inc  ecx
     cmp  ecx, FIELD_H
     jl   RowLoop
-    mov  eax, white + (black * 16)
-    call SetTextColor
 
     mov  dh, FIELD_TOP + FIELD_H
     mov  dl, 0
@@ -280,12 +282,8 @@ NextRock:
         add  dh, FIELD_TOP
         mov  dl, SUB_X
         call Gotoxy
-        mov  eax, yellow + (black * 16)
-        call SetTextColor
         mov  edx, OFFSET subSprite
         call WriteString
-        mov  eax, white + (black * 16)
-        call SetTextColor
     .ENDIF
 
     mov  dh, FIELD_TOP + FIELD_H + 2
@@ -309,11 +307,7 @@ ShowTitle PROC USES eax edx
     mov  dl, 14
     call Gotoxy
     mov  edx, OFFSET titleMsg
-    mov  eax, yellow + (black * 16)
-    call SetTextColor
     call WriteString
-    mov  eax, white + (black * 16)
-    call SetTextColor
     mov  dh, FIELD_TOP + 10
     mov  dl, 14
     call Gotoxy
@@ -346,11 +340,7 @@ ShowGameOver PROC USES eax edx
     mov  dl, 22
     call Gotoxy
     mov  edx, OFFSET overMsg
-    mov  eax, yellow + (black * 16)
-    call SetTextColor
     call WriteString
-    mov  eax, white + (black * 16)
-    call SetTextColor
     mov  dh, FIELD_TOP + 9
     mov  dl, 22
     call Gotoxy
