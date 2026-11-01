@@ -1,3 +1,7 @@
 # CSE3120Contest
 
-Team - Dylin Irons, Dominick Morales
+# Tetris Game
+
+## Team - Dylin Irons, Dominick Morales
+
+A tetris game written in MASM assembly.
