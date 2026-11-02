@@ -91,9 +91,27 @@ drawIt:
     ret
 UpdateWalls ENDP
 
-CheckHit PROC
+CheckHit PROC USES esi
     cmp subY, FLOOR_Y
     jae dead
+    mov esi, 0
+hitLoop:
+    mov al, wallX[esi]
+    cmp al, SUB_X
+    jb nextHit
+    cmp al, SUB_X + SUB_W
+    jae nextHit
+    mov al, subY
+    cmp al, gapY[esi]
+    jb dead
+    mov ah, gapY[esi]
+    add ah, GAP_H
+    cmp al, ah
+    jae dead
+nextHit:
+    inc esi
+    cmp esi, LENGTHOF wallX
+    jb hitLoop
     ret
 dead:
     mov alive, 0
