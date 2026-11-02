@@ -12,10 +12,12 @@ TICK_MS      = 80
 .data
 subShape   BYTE "<=>",0
 blankStr   BYTE "   ",0
+scoreMsg   BYTE "Score: ",0
 subY       BYTE 10
 vel        SBYTE 0
 wallX      BYTE 26, 52, 78
 gapY       BYTE 7, 4, 10
+score      DWORD 0
 alive      BYTE 1
 
 .code
@@ -30,6 +32,7 @@ gameLoop:
     call UpdateWalls
     call UpdateSub
     call CheckHit
+    call ShowScore
     cmp alive, 1
     je gameLoop
     exit
@@ -82,6 +85,10 @@ nextWall:
     mov gapY[esi], al
     mov bl, al
 drawIt:
+    cmp wallX[esi], SUB_X - 1
+    jne noPoint
+    inc score
+noPoint:
     mov dl, wallX[esi]
     mov al, '#'
     call DrawColumn
@@ -155,4 +162,15 @@ notTop:
     call WriteString
     ret
 UpdateSub ENDP
+
+ShowScore PROC
+    mov dl, 0
+    mov dh, 0
+    call Gotoxy
+    mov edx, OFFSET scoreMsg
+    call WriteString
+    mov eax, score
+    call WriteDec
+    ret
+ShowScore ENDP
 END main
