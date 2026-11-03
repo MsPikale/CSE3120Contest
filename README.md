@@ -1,6 +1,6 @@
 # CSE3120Contest
 
-# Sinking Submarine
+# Sinking Submarine - Flappy Bird Style Game
 
 ## Team - Dylin Irons, Dominick Morales
 
