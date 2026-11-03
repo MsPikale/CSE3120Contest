@@ -13,9 +13,9 @@ NUM_ROCKS   = 3
 ROCK_SPACING = 25
 SCALE_SHIFT = 2             ; subY is in 1/4 rows
 START_Y     = (FIELD_H / 2) * 4
-BUOYANCY    = 1
-DIVE_VEL    = 5
-MAX_RISE    = -4
+GRAVITY     = 1
+RISE_VEL    = -5
+MAX_SINK    = 4
 FRAME_MS    = 50
 KEY_ESC     = 27
 KEY_SPACE   = 32
@@ -40,7 +40,7 @@ titleMsg    BYTE "S I N K I N G   S U B M A R I N E", 0
 startMsg    BYTE "Press SPACE to start, ESC to quit", 0
 overMsg     BYTE "G A M E   O V E R", 0
 againMsg    BYTE "R = play again     ESC = quit", 0
-helpMsg     BYTE "SPACE / S = dive     ESC = quit", 0
+helpMsg     BYTE "SPACE / W = rise     ESC = quit", 0
 
 .code
 main PROC
@@ -134,11 +134,11 @@ HandleInput PROC USES eax ebx edx
     call ReadKey            ; ZF = 1 when no key
     jz   Done
     .IF al == KEY_SPACE
-        mov  subVel, DIVE_VEL
-    .ELSEIF al == 's'
-        mov  subVel, DIVE_VEL
-    .ELSEIF al == 'S'
-        mov  subVel, DIVE_VEL
+        mov  subVel, RISE_VEL
+    .ELSEIF al == 'w'
+        mov  subVel, RISE_VEL
+    .ELSEIF al == 'W'
+        mov  subVel, RISE_VEL
     .ELSEIF al == KEY_ESC
         mov  quitFlag, 1
     .ENDIF
@@ -148,10 +148,10 @@ HandleInput ENDP
 
 UpdateSub PROC USES eax
     mov  eax, subVel
-    sub  eax, BUOYANCY
-    cmp  eax, MAX_RISE
-    jge  SpeedOk
-    mov  eax, MAX_RISE
+    add  eax, GRAVITY
+    cmp  eax, MAX_SINK
+    jle  SpeedOk
+    mov  eax, MAX_SINK
 SpeedOk:
     mov  subVel, eax
     add  subY, eax
