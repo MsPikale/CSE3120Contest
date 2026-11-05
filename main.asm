@@ -13,6 +13,7 @@ TICK_MS      = 80
 subShape   BYTE "<=>",0
 blankStr   BYTE "   ",0
 scoreMsg   BYTE "Score: ",0
+overMsg    BYTE "You died! Try again? (y/n)",0
 subY       BYTE 10
 vel        SBYTE 0
 wallX      BYTE 26, 52, 78
@@ -37,6 +38,7 @@ gameLoop:
     call ShowScore
     cmp alive, 1
     je gameLoop
+    call GameOver
     exit
 main ENDP
 
@@ -191,4 +193,20 @@ ShowScore PROC
     call WriteDec
     ret
 ShowScore ENDP
+
+GameOver PROC
+    mov dl, 0
+    mov dh, FLOOR_Y + 2
+    call Gotoxy
+    mov edx, OFFSET overMsg
+    call WriteString
+askAgain:
+    call ReadChar
+    cmp al, 'y'
+    je gotAnswer
+    cmp al, 'n'
+    jne askAgain
+gotAnswer:
+    ret
+GameOver ENDP
 END main
