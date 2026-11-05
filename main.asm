@@ -14,6 +14,7 @@ subShape   BYTE "<=>",0
 blankStr   BYTE "   ",0
 scoreMsg   BYTE "Score: ",0
 overMsg    BYTE "You died! Try again? (y/n)",0
+startMsg   BYTE "Sinking Submarine: Press space to float and dodge the walls. Press any key to continue",0
 subY       BYTE 10
 vel        SBYTE 0
 wallX      BYTE 26, 52, 78
@@ -24,6 +25,9 @@ alive      BYTE 1
 .code
 main PROC
     call Randomize
+    mov edx, OFFSET startMsg
+    call WriteString
+    call ReadChar
 newGame:
     call Clrscr
     call DrawFloor
@@ -39,6 +43,8 @@ gameLoop:
     cmp alive, 1
     je gameLoop
     call GameOver
+    cmp al, 'y'
+    je newGame
     exit
 main ENDP
 
