@@ -23,8 +23,10 @@ alive      BYTE 1
 .code
 main PROC
     call Randomize
+newGame:
     call Clrscr
     call DrawFloor
+    call InitGame
 gameLoop:
     mov eax, TICK_MS
     call Delay
@@ -37,6 +39,22 @@ gameLoop:
     je gameLoop
     exit
 main ENDP
+
+InitGame PROC USES esi
+    mov subY, 10
+    mov vel, 0
+    mov score, 0
+    mov alive, 1
+    mov esi, 0
+    mov al, WALL_SPACING
+setWall:
+    mov wallX[esi], al
+    add al, WALL_SPACING
+    inc esi
+    cmp esi, LENGTHOF wallX
+    jb setWall
+    ret
+InitGame ENDP
 
 DrawFloor PROC
     mov dl, 0
