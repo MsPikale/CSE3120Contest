@@ -1,7 +1,7 @@
 # CSE3120Contest
 
-# Tetris Game
+# Flappy Bird Game
 
 ## Team - Dylin Irons, Dominick Morales
 
-A tetris game written in MASM assembly.
+A flappy bird game written in MASM assembly.
