@@ -21,9 +21,12 @@ wallX      BYTE 26, 52, 78
 gapY       BYTE 7, 4, 10
 score      DWORD 0
 alive      BYTE 1
+cursorInfo CONSOLE_CURSOR_INFO <25, 0>
 
 .code
 main PROC
+    INVOKE GetStdHandle, STD_OUTPUT_HANDLE
+    INVOKE SetConsoleCursorInfo, eax, ADDR cursorInfo
     call Randomize
     mov edx, OFFSET startMsg
     call WriteString
@@ -45,6 +48,9 @@ gameLoop:
     call GameOver
     cmp al, 'y'
     je newGame
+    mov cursorInfo.bVisible, 1
+    INVOKE GetStdHandle, STD_OUTPUT_HANDLE
+    INVOKE SetConsoleCursorInfo, eax, ADDR cursorInfo
     exit
 main ENDP
 
