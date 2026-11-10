@@ -28,6 +28,7 @@ alive       DWORD ?
 score       DWORD ?
 bestScore   DWORD 0
 oldColor    DWORD ?
+cursorInfo  CONSOLE_CURSOR_INFO <25, 0>
 rockX      SDWORD NUM_ROCKS DUP(?)
 gapTop      SDWORD NUM_ROCKS DUP(?)
 
@@ -49,6 +50,8 @@ main PROC
     mov  oldColor, eax
     mov  eax, yellow + (blue * 16)
     call SetTextColor
+    INVOKE GetStdHandle, STD_OUTPUT_HANDLE
+    INVOKE SetConsoleCursorInfo, eax, ADDR cursorInfo
     call Randomize
     call ShowTitle
     cmp  quitFlag, 1
@@ -78,6 +81,9 @@ GameOver:
     jne  NewGame
 
 Quit:
+    mov  cursorInfo.bVisible, 1
+    INVOKE GetStdHandle, STD_OUTPUT_HANDLE
+    INVOKE SetConsoleCursorInfo, eax, ADDR cursorInfo
     mov  eax, oldColor
     call SetTextColor
     call Clrscr
