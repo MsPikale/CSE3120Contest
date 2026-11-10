@@ -137,6 +137,7 @@ NextRock:
 UpdateRocks ENDP
 
 HandleInput PROC USES eax ebx edx
+NextKey:
     call ReadKey            ; ZF = 1 when no key
     jz   Done
     .IF al == KEY_SPACE
@@ -148,6 +149,7 @@ HandleInput PROC USES eax ebx edx
     .ELSEIF al == KEY_ESC
         mov  quitFlag, 1
     .ENDIF
+    jmp  NextKey            ; keep reading until the buffer is empty
 Done:
     ret
 HandleInput ENDP
